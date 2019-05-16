@@ -5,7 +5,7 @@ import binascii
 from manuf import manuf
 import json
 import pika
-
+import time
 
 class Simulator:
     def __init__(self, host, user, passwd, vhost):
@@ -14,9 +14,7 @@ class Simulator:
         self.passwd = passwd
         self.vhost = vhost
 
-        self.arquivos = ['probes-2013-03-17.pcap0', 'probes-2013-03-17.pcap1', 'probes-2013-03-17.pcap2',
-                         'probes-2013-03-17.pcap3', 'probes-2013-03-17.pcap4', 'probes-2013-03-19.pcap0',
-                         'probes-2013-03-19.pcap1']
+        self.arquivos =['probes-2013-03-17.pcap0','probes-2013-03-19.pcap0','probes-2013-03-19.pcap1','probes-2013-03-17.pcap1','probes-2013-03-17.pcap2','probes-2013-03-17.pcap3','probes-2013-03-17.pcap4']
         self.p = manuf.MacParser(update=True)
         self.devices = defaultdict(list)
         self.ssids = defaultdict(list)
@@ -59,17 +57,19 @@ class Simulator:
         channel = connection.channel()
         channel.exchange_declare(exchange='topic_logs',
                          exchange_type='topic')
-
-        times = self.timeStamps.keys().sort()
-        for counter in len(times):
+        times = list(self.timeStamps.keys())
+        times.sort()
+    
+        for counter in range(len(times)):
             try:
                 waitTime = (times[counter+1]-times[counter])/speed
             except:
                 waitTime = 0
             message = json.dumps(self.timeStamps[times[counter]])
-            channel.basic_publish(exchange='topic_logs', routing_key=times[counter], body=message)
+            chave = str(times[counter])
+            channel.basic_publish(exchange='topic_logs', routing_key=chave, body=message)
             time.sleep(waitTime)
 
-simulador = Simulator("host",'user','passwd','vhost')
+simulador = Simulator("localhost",'hugo','041296','hugo')
 simulador.generateDatas()
 simulador.simulatePackets(10)
