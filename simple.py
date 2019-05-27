@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 from collections import defaultdict
+from kafka import KafkaProducer
 import dpkt
 import binascii
 from manuf import manuf
 import json
-import pika
 import time
 
 class Simulator:
@@ -52,11 +52,7 @@ class Simulator:
         self.ssids[ssid].append([ts, src])
 
     def simulatePackets(self, speed):
-        credentials = pika.PlainCredentials(self.user, self.passwd)
-        connection = pika.BlockingConnection(pika.ConnectionParameters(self.host, 5672, self.vhost, credentials))
-        channel = connection.channel()
-        channel.exchange_declare(exchange='topic_logs',
-                         exchange_type='topic')
+        producer = KafkaProducer(bootstrap_servers='localhost:9092', value_serializer=lambda v: str(v).encode('utf-8'))
         times = list(self.timeStamps.keys())
         times.sort()
     
@@ -67,7 +63,7 @@ class Simulator:
                 waitTime = 0
             message = json.dumps(self.timeStamps[times[counter]])
             chave = str(times[counter])
-            channel.basic_publish(exchange='topic_logs', routing_key=chave, body=message)
+            producer.send('meu-topico-legal', message)
             time.sleep(waitTime)
 
 simulador = Simulator("localhost",'hugo','041296','hugo')
