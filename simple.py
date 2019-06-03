@@ -14,7 +14,7 @@ class Simulator:
         self.passwd = passwd
         self.vhost = vhost
 
-        self.arquivos =['probes-2013-03-17.pcap0','probes-2013-03-19.pcap0','probes-2013-03-19.pcap1','probes-2013-03-17.pcap1','probes-2013-03-17.pcap2','probes-2013-03-17.pcap3','probes-2013-03-17.pcap4']
+        self.arquivos =['probes-2013-03-17.pcap0']
         self.p = manuf.MacParser(update=True)
         self.devices = defaultdict(list)
         self.ssids = defaultdict(list)
@@ -47,7 +47,9 @@ class Simulator:
     def populateLists(self, mv, src, ssid, ts):
         if ssid != "":
             self.pnls[src].append(ssid)
-        self.timeStamps[ts].append([ssid, mv, src])
+        self.timeStamps[ts].append(ssid)
+        self.timeStamps[ts].append(mv)
+        self.timeStamps[ts].append(src)
         self.devices[src].append([ts, ssid, mv])
         self.ssids[ssid].append([ts, src])
 
@@ -61,8 +63,10 @@ class Simulator:
                 waitTime = (times[counter+1]-times[counter])/speed
             except:
                 waitTime = 0
-            message = json.dumps(self.timeStamps[times[counter]])
-            chave = str(times[counter])
+            result = {}
+            result[self.timeStamps.keys()[counter]]=self.timeStamps[times[counter]]
+            message = json.dumps(result)
+            print(message)
             producer.send('meu-topico-legal', message)
             time.sleep(waitTime)
 
