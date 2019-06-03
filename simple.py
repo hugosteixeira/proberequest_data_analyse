@@ -63,9 +63,13 @@ class Simulator:
                 waitTime = (times[counter+1]-times[counter])/speed
             except:
                 waitTime = 0
-            result = {}
-            result[self.timeStamps.keys()[counter]]=self.timeStamps[times[counter]]
-            message = json.dumps(result)
+            message = ''
+            message += str(self.timeStamps.keys()[counter])+','
+            message += str(self.timeStamps[times[counter]][0])+","      
+            message+= str(self.timeStamps[times[counter]][1])+ ','
+            message+=str(self.timeStamps[times[counter]][2])
+
+
             print(message)
             producer.send('meu-topico-legal', message)
             time.sleep(waitTime)
