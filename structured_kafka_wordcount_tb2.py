@@ -1,4 +1,3 @@
-######################################################
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -37,48 +36,30 @@
     `$ bin/spark-submit examples/src/main/python/sql/streaming/structured_kafka_wordcount.py \
     host1:port1,host2:port2 subscribe topic1,topic2`
     
-    bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.3 /home/rsi-psd-vm/Documents/rsi-psd-codes/psd/pratica-05/structured_kafka_wordcount.py localhost:9092 subscribe meu-topico-legal
+    bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.3 /home/rsi-psd-vm/Documents/rsi-psd-codes/psd/pratica-05/structured_kafka_wordcount_tb2.py localhost:9092 subscribe meu-topico-legal
 """
 from __future__ import print_function
 
 import sys
 
 from pyspark.sql import SparkSession
-from pyspark.sql.types import *
-from pyspark import SparkConf, SparkContext
-import pyspark
 from pyspark.sql.functions import explode
 from pyspark.sql.functions import split
-from pyspark.sql.functions import desc
-import json
-import pyspark.sql.functions as F
 import requests
-from kafka import SimpleProducer, KafkaClient
-from pyspark.streaming import StreamingContext
-from pyspark.streaming.kafka import KafkaUtils
-from kafka import KafkaProducer
+import json
 
 
 THINGSBOARD_HOST = '127.0.0.1'
 THINGSBOARD_PORT = '9090'
-ACCESS_TOKEN = 'dPnNgtUfd6JTnc8isyYn'
+ACCESS_TOKEN = 'V7jlIzhvXp2KcvveaVrz'
 url = 'http://' + THINGSBOARD_HOST + ':' + THINGSBOARD_PORT + '/api/v1/' + ACCESS_TOKEN + '/telemetry'
 headers = {}
 headers['Content-Type'] = 'application/json'
 
-
-# producer = KafkaProducer(bootstrap_servers='localhost:9092')
-
-# def handler(message):
-#     records = message.collect()
-#     for record in records:
-#         producer.send('spark.out', str(record))
-#         producer.flush()
-
 def processRow(row):
     print(row)
-    row_data = { row.Manuf : row.__getitem__("count")} 
-    # requests.post(url, json=row_data)
+    row_data = { row.word : row.__getitem__("count")}
+    requests.post(url, json=row_data)
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
@@ -93,9 +74,8 @@ if __name__ == "__main__":
 
     spark = SparkSession\
         .builder\
-        .appName("seiLa")\
+        .appName("StructuredKafkaWordCount")\
         .getOrCreate()
-
 
     # Create DataSet representing the stream of input lines from kafka
     lines = spark\
@@ -106,48 +86,29 @@ if __name__ == "__main__":
         .load()\
         .selectExpr("CAST(value AS STRING)")
 
-    # # Split the lines into words
-
-    probes = lines.select(
-        split(lines.value,',')[0].alias('timestamp'),
-        split(lines.value,',')[1].alias('SSID'),
-        split(lines.value,',')[2].alias('Manuf'),
-        split(lines.value,',')[3].alias('MAC')
+    # Split the lines into words
+    words = lines.select(
+        # explode turns each item in an array into a separate row
+        explode(
+            split(lines.value, ' ')
+        ).alias('word')
     )
-    # tabela 1
-    # probes = probes.select(
-    #     'MAC',
-    #     "Manuf"
-    # ).distinct().groupBy("Manuf").count().sort(desc('count'))
 
-    # tabela 2
-    probes = probes.filter("SSID != 'BROADCAST'").select(
-        'Manuf',
-        'SSID',
-        'MAC'
-    ).groupBy('Manuf').count()
-    # probes = probes.groupBy("count").count()
+    # Generate running word count
+    wordCounts = words.groupBy('word').count()
+    #words = words.groupBy('word')
 
+    # Start running the query that prints the running counts to the console
+    # query = wordCounts\
+    #     .writeStream\
+    #     .outputMode('complete')\
+    #     .format('console')\
+    #     .start()
 
-    #tabela 4
-    # probes = probes.select(
-    #     'SSID',
-    #     'MAC'
-    # ).distinct().groupBy('MAC').count().sort(desc('count'))
-
-
-    # probes = probes.select(
-    #     F.approxCountDistinct("Manuf")
-    # )
-
-    # # Start running the query that prints the running counts to the console
-    query = probes.selectExpr("CAST (Manuf AS STRING) AS key","CAST (count as STRING) AS value")\
+    query = wordCounts\
         .writeStream\
-        .format('kafka')\
         .outputMode('complete')\
-        .option("kafka.bootstrap.servers", "localhost:9092")\
-        .option("topic", "resend")\
-        .option("checkpointLocation", "/root/")\
+        .foreach(processRow)\
         .start()
 
     query.awaitTermination()

@@ -37,7 +37,7 @@
     `$ bin/spark-submit examples/src/main/python/sql/streaming/structured_kafka_wordcount.py \
     host1:port1,host2:port2 subscribe topic1,topic2`
     
-    bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.3 /home/rsi-psd-vm/Documents/rsi-psd-codes/psd/pratica-05/structured_kafka_wordcount.py localhost:9092 subscribe meu-topico-legal
+    bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.3 /home/rsi-psd-vm/Documents/rsi-psd-codes/psd/pratica-05/structured_kafka_wordcount.1.py localhost:9092 subscribe resend
 """
 from __future__ import print_function
 
@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     spark = SparkSession\
         .builder\
-        .appName("seiLa")\
+        .appName("newApp")\
         .getOrCreate()
 
 
@@ -109,10 +109,7 @@ if __name__ == "__main__":
     # # Split the lines into words
 
     probes = lines.select(
-        split(lines.value,',')[0].alias('timestamp'),
-        split(lines.value,',')[1].alias('SSID'),
-        split(lines.value,',')[2].alias('Manuf'),
-        split(lines.value,',')[3].alias('MAC')
+
     )
     # tabela 1
     # probes = probes.select(
@@ -121,11 +118,11 @@ if __name__ == "__main__":
     # ).distinct().groupBy("Manuf").count().sort(desc('count'))
 
     # tabela 2
-    probes = probes.filter("SSID != 'BROADCAST'").select(
-        'Manuf',
-        'SSID',
-        'MAC'
-    ).groupBy('Manuf').count()
+    # probes = probes.filter("SSID != 'BROADCAST'").select(
+    #     'Manuf',
+    #     'SSID',
+    #     'MAC'
+    # ).groupBy('Manuf').count()
     # probes = probes.groupBy("count").count()
 
 
@@ -141,13 +138,10 @@ if __name__ == "__main__":
     # )
 
     # # Start running the query that prints the running counts to the console
-    query = probes.selectExpr("CAST (Manuf AS STRING) AS key","CAST (count as STRING) AS value")\
+    query = lines\
         .writeStream\
-        .format('kafka')\
-        .outputMode('complete')\
-        .option("kafka.bootstrap.servers", "localhost:9092")\
-        .option("topic", "resend")\
-        .option("checkpointLocation", "/root/")\
+        .outputMode('append')\
+        .foreach(processRow)\
         .start()
 
     query.awaitTermination()
