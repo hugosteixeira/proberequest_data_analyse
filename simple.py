@@ -14,7 +14,7 @@ class Simulator:
         self.passwd = passwd
         self.vhost = vhost
 
-        self.arquivos =['probes-2013-03-17.pcap0','probes-2013-03-17.pcap1']
+        self.arquivos =['probes-2013-03-17.pcap0']
         self.p = manuf.MacParser(update=True)
         self.devices = defaultdict(list)
         self.ssids = defaultdict(list)
