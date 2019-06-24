@@ -36,7 +36,7 @@
     `$ bin/spark-submit examples/src/main/python/sql/streaming/structured_kafka_wordcount.py \
     host1:port1,host2:port2 subscribe topic1,topic2`
     
-    bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.3 /home/rsi-psd-vm/Documents/rsi-psd-codes/psd/pratica-05/structured_kafka_wordcount_tb2.py localhost:9092 subscribe meu-topico-legal
+    bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.3 /home/rsi-psd-vm/pasta/proberequest_data_analyse/request.py localhost:9092 subscribe meu-topico-legal
 """
 from __future__ import print_function
 
@@ -56,15 +56,15 @@ import json
 
 
 THINGSBOARD_HOST = '127.0.0.1'
-THINGSBOARD_PORT = '9090'
-ACCESS_TOKEN = 'V7jlIzhvXp2KcvveaVrz'
+THINGSBOARD_PORT = '8080'
+ACCESS_TOKEN = 'sgS7igdF9zGiF3hX7B5m'
 url = 'http://' + THINGSBOARD_HOST + ':' + THINGSBOARD_PORT + '/api/v1/' + ACCESS_TOKEN + '/telemetry'
 headers = {}
 headers['Content-Type'] = 'application/json'
 
 def processRow(row):
     print(row)
-    row_data = { row.word : row.__getitem__("count")}
+    row_data = { 'TotalProbes' : row.__getitem__("TotalProbes")}
     requests.post(url, json=row_data)
 
 if __name__ == "__main__":
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         split(lines.value,',')[3].alias('MAC')
     )
 
-    probes = probes.select(F.approxCountDistinct('timestamp'))
+    probes = probes.select(F.approxCountDistinct('timestamp').alias('TotalProbes'))
 
     query = probes\
         .writeStream\
