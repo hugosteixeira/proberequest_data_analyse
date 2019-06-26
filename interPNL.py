@@ -65,7 +65,7 @@ headers['Content-Type'] = 'application/json'
 
 def processRow(row):
     print(row)
-    row_data = { 'MAC' : row.__getitem__("MAC")}
+    row_data = { 'SSID' : row.__getitem__("SSID")}
     requests.post(url, json=row_data)
 
 if __name__ == "__main__":
@@ -100,21 +100,27 @@ if __name__ == "__main__":
         split(lines.value,',')[3].alias('MAC')
     )
 
+ 
+
+    probes1 = probes.filter("MAC = '0014a5001517'").select(
+        'SSID'
+    ).distinct()
 
 
-    probes = probes.filter("SSID = 'SSID_053777'").select(
-        'MAC'
-    ).groupBy('MAC').count()
+    probes2 = probes.filter("MAC = 'e4d53d151052'").select(
+        'SSID'
+    ).distinct()
 
-    probes2 = probes.select(
-        "MAC"
-    )
+    #probes3 = probes.select(array_intersect(probes1.SSID, probes2.SSID)).count()
 
-    
-    query = probes2\
+    probes3 = probes1.intersectAll(probes2).sort("SSID", "SSID")
+
+  
+
+    query = probes3\
         .writeStream\
         .option('truncate','false')\
-        .outputMode('complete')\
+        .outputMode('append')\
         .format('console')\
         .start()
 

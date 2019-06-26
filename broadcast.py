@@ -110,9 +110,10 @@ if __name__ == "__main__":
     
     query = probes\
         .writeStream\
+        .option('truncate','false')\
         .outputMode('complete')\
         .format('console')\
-        .foreach(processRow)\
         .start()
+
 
     query.awaitTermination()
